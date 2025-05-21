@@ -14,7 +14,7 @@ from sre_agent_tools import (
     get_logs
 )
 
-enable_verbose_stdout_logging()
+#enable_verbose_stdout_logging()
 set_tracing_disabled(True)
 set_default_openai_api("chat_completions")
 
@@ -22,13 +22,15 @@ set_default_openai_api("chat_completions")
 # Load environment variables from a .env file
 load_dotenv()
 
-# Read the API key from the environment variable
+api_endpoint = os.getenv("OPENAI_ENDPOINT")
 api_key = os.getenv("OPENAI_API_KEY")
 
 if not api_key:
     raise ValueError("API key not found. Please set OPENAI_API_KEY in your .env file.")
+if not api_endpoint:
+    raise ValueError("API endpoint not found. Please set OPENAI_ENDPOINT in your .env file.")
 
-custom_client = AsyncAzureOpenAI(azure_endpoint="https://ruslany-net.openai.azure.com", api_key=api_key, api_version="2025-03-01-preview", azure_deployment="gpt-4o-mini")
+custom_client = AsyncAzureOpenAI(azure_endpoint=api_endpoint, api_key=api_key, api_version="2025-03-01-preview", azure_deployment="gpt-4o-mini")
 set_default_openai_client(custom_client)
 
 # Define coordinator_agent first with empty handoffs to resolve circular reference
@@ -99,12 +101,13 @@ async def main():
     messages = []
 
     while True:
-        user = input("User: ")
+        user = input("### User: ")
         messages.append({"role": "user", "content": user})
 
         response = await Runner.run(agent, messages)
+        print(f"### {response.last_agent.name}: {response.final_output}")
         agent = response.last_agent
-        messages = response.to_input_list()
+        messages = response.to_input_list()        
 
 if __name__ == "__main__":
     asyncio.run(main())
